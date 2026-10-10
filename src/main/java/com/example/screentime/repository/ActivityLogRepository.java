@@ -11,6 +11,7 @@ import java.util.List;
 public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> {
 
     List<ActivityLog> findByPersonIdAndDate(Long personId, LocalDate date);
+    List<ActivityLog> findByPersonIdAndDateBetween(Long personId, LocalDate start, LocalDate end);
 
     @Query("select coalesce(sum(a.minutes), 0) from ActivityLog a "
             + "where a.personId = :personId and a.type = :type and a.date = :date")
