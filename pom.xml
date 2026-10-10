@@ -17,7 +17,6 @@
     <name>screen-time-balance-api</name>
     <description>Track screen time and hobbies for every family member</description>
 
-    xml
     <properties>
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
