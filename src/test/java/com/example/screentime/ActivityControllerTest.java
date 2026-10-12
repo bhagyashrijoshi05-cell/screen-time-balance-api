@@ -80,4 +80,39 @@ class ActivityControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].minutes").value(45));
     }
+    @Test
+    void negativeMinutesAreRejected() throws Exception {
+        long id = createPerson("Neel", "CHILD");
+
+        mockMvc.perform(post("/api/persons/" + id + "/activities")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SCREEN\",\"minutes\":-5,\"date\":\"2026-10-12\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.minutes").exists());
+    }
+
+    @Test
+    void zeroMinutesAreRejected() throws Exception {
+        long id = createPerson("Zoya", "ADULT");
+
+        mockMvc.perform(post("/api/persons/" + id + "/activities")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"READING\",\"minutes\":0,\"date\":\"2026-10-12\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void moreThanOneDayOfMinutesIsRejectedButExactlyOneDayIsAllowed() throws Exception {
+        long id = createPerson("Om", "ADULT");
+
+        mockMvc.perform(post("/api/persons/" + id + "/activities")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"OUTDOOR\",\"minutes\":1441,\"date\":\"2026-10-12\"}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/persons/" + id + "/activities")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"OUTDOOR\",\"minutes\":1440,\"date\":\"2026-10-12\"}"))
+                .andExpect(status().isCreated());
+    }
 }
