@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.time.DayOfWeek;
 
 import java.time.LocalDate;
 import java.util.EnumMap;
@@ -42,8 +43,8 @@ public class SummaryController {
             return ResponseEntity.notFound().build();
         }
 
-        // Find the start and end of the week that contains the given date
-        LocalDate weekStart = date.minusDays(date.getDayOfWeek().getValue());
+        // The week runs Monday to Sunday
+        LocalDate weekStart = date.with(DayOfWeek.MONDAY);
         LocalDate weekEnd = weekStart.plusDays(6);
 
         List<ActivityLog> logs =
