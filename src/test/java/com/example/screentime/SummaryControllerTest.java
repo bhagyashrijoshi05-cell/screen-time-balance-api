@@ -59,4 +59,62 @@ class SummaryControllerTest {
         mockMvc.perform(get("/api/persons/9999/summary/weekly?date=2026-10-14"))
                 .andExpect(status().isNotFound());
     }
+    @Test
+    void weeklySummaryIgnoresDaysFromNeighbouringWeeks() throws Exception {
+        long id = createPerson("Dev", "ADULT");
+        log(id, "SCREEN", 11, "2026-10-11");   // Sunday before the week, excluded
+        log(id, "SCREEN", 20, "2026-10-12");   // Monday, first day, included
+        log(id, "SCREEN", 30, "2026-10-18");   // Sunday, last day, included
+        log(id, "SCREEN", 99, "2026-10-19");   // Monday after the week, excluded
+
+        mockMvc.perform(get("/api/persons/" + id + "/summary/weekly?date=2026-10-14"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.minutesByType.SCREEN").value(50));
+    }
+    @Test
+    void sundayBelongsToTheWeekThatEndsOnThatSunday() throws Exception {
+        long id = createPerson("Kabir", "ADULT");
+        log(id, "SCREEN", 20, "2026-10-05");   // Monday
+        log(id, "SCREEN", 50, "2026-10-11");   // Sunday
+        log(id, "SCREEN", 100, "2026-10-12");  // next Monday, must be excluded
+
+        mockMvc.perform(get("/api/persons/" + id + "/summary/weekly?date=2026-10-11"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weekStart").value("2026-10-05"))
+                .andExpect(jsonPath("$.weekEnd").value("2026-10-11"))
+                .andExpect(jsonPath("$.minutesByType.SCREEN").value(70));
+    }
+
+    @Test
+    void mondayStartsANewWeek() throws Exception {
+        long id = createPerson("Ira", "ADULT");
+        log(id, "READING", 30, "2026-10-12");
+
+        mockMvc.perform(get("/api/persons/" + id + "/summary/weekly?date=2026-10-12"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weekStart").value("2026-10-12"))
+                .andExpect(jsonPath("$.weekEnd").value("2026-10-18"))
+                .andExpect(jsonPath("$.minutesByType.READING").value(30));
+    }
+
+
+
+
+    @Test
+    void screenLimitIsCrossedOnlyAboveTheWeeklyLimit() throws Exception {
+        long exact = createPerson("Neel", "ADULT");   // weekly limit 240 x 7 = 1680
+        log(exact, "SCREEN", 1000, "2026-10-12");
+        log(exact, "SCREEN", 680, "2026-10-13");
+
+        mockMvc.perform(get("/api/persons/" + exact + "/summary/weekly?date=2026-10-14"))
+                .andExpect(jsonPath("$.weeklyScreenLimit").value(1680))
+                .andExpect(jsonPath("$.screenLimitCrossed").value(false));
+
+        long over = createPerson("Tara", "ADULT");
+        log(over, "SCREEN", 1000, "2026-10-12");
+        log(over, "SCREEN", 681, "2026-10-13");
+
+        mockMvc.perform(get("/api/persons/" + over + "/summary/weekly?date=2026-10-14"))
+                .andExpect(jsonPath("$.screenLimitCrossed").value(true));
+    }
 }
