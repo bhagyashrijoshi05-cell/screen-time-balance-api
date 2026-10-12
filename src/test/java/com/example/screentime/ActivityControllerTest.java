@@ -98,7 +98,8 @@ class ActivityControllerTest {
         mockMvc.perform(post("/api/persons/" + id + "/activities")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"READING\",\"minutes\":0,\"date\":\"2026-10-12\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.minutes").value("minutes must be at least 1"));
     }
 
     @Test
@@ -108,11 +109,23 @@ class ActivityControllerTest {
         mockMvc.perform(post("/api/persons/" + id + "/activities")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"OUTDOOR\",\"minutes\":1441,\"date\":\"2026-10-12\"}"))
-                .andExpect(status().isBadRequest());
+                              .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.minutes")
+                        .value("minutes cannot be more than 1440 in a single entry"));
 
         mockMvc.perform(post("/api/persons/" + id + "/activities")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"OUTDOOR\",\"minutes\":1440,\"date\":\"2026-10-12\"}"))
                 .andExpect(status().isCreated());
+    }
+    @Test
+    void missingMinutesIsReportedAsRequired() throws Exception {
+        long id = createPerson("Ria", "SENIOR");
+
+        mockMvc.perform(post("/api/persons/" + id + "/activities")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SCREEN\",\"date\":\"2026-10-12\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.minutes").value("minutes is required"));
     }
 }
